@@ -1,6 +1,8 @@
 # youtube-dl-concurrent
 Youtube-dl youtube downloader Windows to run multiple concurrent parallel video downloads simultaneously
 
+#### This is for Windows OS
+
 # Usage
 
 Inside the ```lists folder``` | ```\lists\lists.txt``` you will find ```lists.txt``` input your URL's to this file every line should have one URL only.
