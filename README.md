@@ -15,6 +15,8 @@ Enjoy concurrent downloads downloading multiple urls from multiple websites usin
 
 # Settings
 
+If you want to convert videos with `FFMPEG.exe` after they have downloaded you can answer `Y` for `YES` or `N` for `NO`
+
 You can choose to either download all the URL's you input to the ```\lists\lists.txt``` file all at once or you can have a throttled download experience where you only download 20 or so at a time.
 
 In my opinion the trottled is safer because if you have allot of URL links lets say `3000+` to download it will download them in a sensible manner. If you took the unthrottled approach it will open over `3000+` command prompt windows slowing your computer to a grinding holt.
