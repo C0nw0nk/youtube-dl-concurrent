@@ -12,6 +12,79 @@ SET "MESSAGE=%URL%"
 SET "sFind=https://www.pornhub.com/view_video.php?viewkey^="
 call set New=%%Message:%sFind%%%
 
+For /f "delims=" %%x in ('
+%root_path%youtube-dl.exe --get-duration "%URL%"
+') do set "data=!data!%%x"
+echo Video Length is %data%
+
+SET STRING=%data%
+set count=0
+for %%a in (%STRING::= %) do set /a count+=1
+set loopvar=1
+:repeat
+for /f "tokens=%loopvar% delims=:" %%a in ("%STRING%") do (
+if /I %count%==4 (
+if /I %loopvar%==1 (set days_output=%%a && echo Count we are on Days %%a)
+if /I %loopvar%==2 (set hours_output=%%a && echo Count we are on Hours %%a)
+if /I %loopvar%==3 (set mins_output=%%a && echo Count we are on Mins %%a)
+if /I %loopvar%==4 (set secs_output=%%a && echo Count we are on Seconds %%a)
+)
+if /I %count%==3 (
+if /I %loopvar%==1 (set hours_output=%%a && echo Count we are on Hours %%a)
+if /I %loopvar%==2 (set mins_output=%%a && echo Count we are on Mins %%a)
+if /I %loopvar%==3 (set secs_output=%%a && echo Count we are on Seconds %%a)
+)
+if /I %count%==2 (
+if /I %loopvar%==1 (set mins_output=%%a && echo Count we are on Mins %%a)
+if /I %loopvar%==2 (set secs_output=%%a && echo Count we are on Seconds %%a)
+)
+if /I %count%==1 (
+if /I %loopvar%==1 (set secs_output=%%a && echo Count we are on Seconds %%a)
+)
+)
+if %loopvar% gtr %count% (goto :done) else (set /a loopvar=%loopvar%+1 && goto :repeat)
+:done
+
+if defined days_output (goto :days_defined) else (goto :days_undefined)
+:days_defined
+if [%days_output:~0,1%]==[0] (
+set days_output=%days_output:~1,1% * 86400
+) else (set days_output=%days_output% * 86400)
+:days_undefined
+
+if defined hours_output (goto :hours_defined) else (goto :hours_undefined)
+:hours_defined
+if [%hours_output:~0,1%]==[0] (
+set hours_output=%hours_output:~1,1% * 3600
+) else (set hours_output=%hours_output% * 3600)
+:hours_undefined
+
+if defined mins_output (goto :mins_defined) else (goto :mins_undefined)
+:mins_defined
+if [%mins_output:~0,1%]==[0] (
+set mins_output=%mins_output:~1,1% * 60
+) else (set mins_output=%mins_output% * 60)
+:mins_undefined
+
+if defined secs_output (goto :secs_defined) else (goto :secs_undefined)
+:secs_defined
+if [%secs_output:~0,1%]==[0] (
+set secs_output=%secs_output:~1,1%
+)
+:secs_undefined
+
+SET /A time_secs=!days_output!+!hours_output!+!mins_output!+!secs_output!
+echo Seconds !time_secs!
+
+echo %time_secs% compared to 300
+IF %time_secs% GTR 300 (
+echo It is more than
+) else (
+echo it is less than
+:: Do not download videos less than 5 mins
+EXIT
+)
+
 %root_path%youtube-dl.exe -r 100m --format "(bestvideo[fps>60]/bestvideo)+bestaudio/best" --external-downloader aria2c -o %root_path%Downloads/%New%.mp4 -i --ignore-config --hls-prefer-native %URL%
 
 rem %root_path%youtube-dl.exe -r 100m --format "(bestvideo[fps>60]/bestvideo)+bestaudio/best" --external-downloader aria2c -o %root_path%Downloads/%New%.mp4 -i --ignore-config --hls-prefer-native %URL% --postprocessor-args "-ss 00:01:00 -vf scale=-1:720 -c:v libx264 -c:a copy -x264opts opencl -movflags +faststart -analyzeduration 2147483647 -probesize 2147483647 -pix_fmt yuv420p"
