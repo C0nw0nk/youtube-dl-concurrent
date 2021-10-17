@@ -12,6 +12,51 @@ SET "MESSAGE=%URL%"
 SET "sFind=https://www.pornhub.com/view_video.php?viewkey^="
 call set New=%%Message:%sFind%%%
 
+IF EXIST "%ProgramFiles%\PuTTY\plink.exe" ( goto :putty_install ) else ( goto :putty_not_install )
+:putty_install
+
+rem plink.exe %ftp_server% -l %ftp_user% -pw %ftp_password% -batch "find %ftp_directory%%question4% -name *.mp4 -type f -size -20M -delete"
+
+For /f "delims=" %%x in ('
+plink.exe %ftp_server% -l %ftp_user% -pw %ftp_password% -batch "find %ftp_directory%%question4% -name *.mp4 -type f -size -20M -delete"
+') do set "plink_small_files=!plink_small_files!%%x"
+
+::Fix incase not a valid time stamp
+echo("%plink_small_files%"|findstr "^[\"][-][1-9][0-9]*[\"]$ ^[\"][1-9][0-9]*[\"]$ ^[\"]0[\"]$">nul&&echo files sizes numeric||echo file sizes not numeric
+
+For /f "delims=" %%x in ('
+plink.exe %ftp_server% -l %ftp_user% -pw %ftp_password% -batch "test -f '%ftp_directory%%question4%/%New%.mp4' && echo '1' || echo '0'"
+') do set "plink_file_exist=!plink_file_exist!%%x"
+
+::Fix incase not a valid time stamp
+echo("%plink_file_exist%"|findstr "^[\"][-][1-9][0-9]*[\"]$ ^[\"][1-9][0-9]*[\"]$ ^[\"]0[\"]$">nul&&echo numeric||echo not numeric && EXIT
+
+echo 1 True 0 False
+echo %plink_file_exist%
+if %plink_file_exist% == 1 (
+echo File does exist
+EXIT
+)
+
+For /f "delims=" %%x in ('
+plink.exe %ftp_server% -l %ftp_user% -pw %ftp_password% -batch "ls %ftp_directory%%question4% | wc -l"
+') do set "plink=!plink!%%x"
+
+::Fix incase not a valid time stamp
+echo("%plink%"|findstr "^[\"][-][1-9][0-9]*[\"]$ ^[\"][1-9][0-9]*[\"]$ ^[\"]0[\"]$">nul&&echo numeric||echo not numeric && EXIT
+
+echo Number of files in directory %plink%
+IF %plink% GTR 460 (
+echo It is more than
+EXIT
+) else (
+echo it is less than
+:: Do not download videos less than 5 mins
+rem EXIT
+)
+
+:putty_not_install
+
 For /f "delims=" %%x in ('
 %root_path%youtube-dl.exe --get-duration "%URL%"
 ') do set "data=!data!%%x"
@@ -76,6 +121,9 @@ set secs_output=%secs_output:~1,1%
 SET /A time_secs=!days_output!+!hours_output!+!mins_output!+!secs_output!
 echo Seconds !time_secs!
 
+::Fix incase not a valid time stamp
+echo("%time_secs%"|findstr "^[\"][-][1-9][0-9]*[\"]$ ^[\"][1-9][0-9]*[\"]$ ^[\"]0[\"]$">nul&&echo numeric||echo not numeric && EXIT
+
 echo %time_secs% compared to 300
 IF %time_secs% GTR 300 (
 echo It is more than
@@ -85,7 +133,7 @@ echo it is less than
 EXIT
 )
 
-%root_path%youtube-dl.exe -r 100m --format "(bestvideo[fps>60]/bestvideo)+bestaudio/best" --external-downloader aria2c -o %root_path%Downloads/%New%.mp4 -i --ignore-config --hls-prefer-native %URL%
+%root_path%youtube-dl.exe --format "(bestvideo[filesize>10M]/bestvideo)+bestaudio/best" --http-chunk-size 10M --external-downloader aria2c --external-downloader-args "-x 16 -s 16 -k 1M" -o %root_path%Downloads/%New%.mp4 -i --ignore-config %URL%
 
 rem %root_path%youtube-dl.exe -r 100m --format "(bestvideo[fps>60]/bestvideo)+bestaudio/best" --external-downloader aria2c -o %root_path%Downloads/%New%.mp4 -i --ignore-config --hls-prefer-native %URL% --postprocessor-args "-ss 00:01:00 -vf scale=-1:720 -c:v libx264 -c:a copy -x264opts opencl -movflags +faststart -analyzeduration 2147483647 -probesize 2147483647 -pix_fmt yuv420p"
 
@@ -101,20 +149,6 @@ EXIT
 
 :start_convert
 %root_path%ffmpeg.exe -y -i "%root_path%Downloads/%New%.mp4" -ss 00:01:00 -vf scale=-1:720 -c:v libx264 -c:a copy -x264opts opencl -movflags +faststart -analyzeduration 2147483647 -probesize 2147483647 -pix_fmt yuv420p "%root_path%Converted\%New%.mp4"
-
-
-echo %root_path%Converted\%New%.mp4
-set maxbytesize=1000000
-FOR /F "usebackq" %%A IN ('%root_path%Converted\^%New%.mp4') DO set /a size=%%~zA 
-echo size is %size%
-echo size is !size!
-IF %size% LSS %maxbytesize% ( 
-echo.File is ^< %maxbytesize% bytes 
-echo %root_path%Converted\%New%.mp4
-del "%root_path%Converted\%New%.mp4"
-) ELSE (
-echo.File is ^> %maxbytesize% bytes 
-) 
 
 if /I %question6%==y goto :start_delete_original
 if /I %question6%==Y goto :start_delete_original
